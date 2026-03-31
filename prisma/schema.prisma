@@ -25,7 +25,7 @@ model User {
   updatedAt        DateTime  @updatedAt
   bookings         Booking[]
 
-  @@map("users")
+  @@map("user")
 }
 
 model Trip {
@@ -45,7 +45,7 @@ model Trip {
   updatedAt       DateTime  @updatedAt
   bookings        Booking[]
 
-  @@map("trips")
+  @@map("trip")
 }
 
 model TripRequest {
@@ -61,7 +61,7 @@ model TripRequest {
   notes           String?  @db.Text
   createdAt       DateTime @default(now())
 
-  @@map("trip_requests")
+  @@map("triprequest")
 }
 
 model Booking {
@@ -78,7 +78,7 @@ model Booking {
   status      String   @default("confirmed") // confirmed, cancelled
   createdAt   DateTime @default(now())
 
-  @@map("bookings")
+  @@map("booking")
 }
 
 model FuelLog {
@@ -90,7 +90,7 @@ model FuelLog {
   odometer Float
   createdAt DateTime @default(now())
 
-  @@map("fuel_logs")
+  @@map("fuellog")
 }
 
 model MaintenanceLog {
@@ -101,7 +101,7 @@ model MaintenanceLog {
   cost        Float
   createdAt   DateTime @default(now())
 
-  @@map("maintenance_logs")
+  @@map("maintenancelog")
 }
 
 model Destination {
@@ -109,5 +109,5 @@ model Destination {
   name      String   @unique
   createdAt DateTime @default(now())
 
-  @@map("destinations")
+  @@map("destination")
 }
