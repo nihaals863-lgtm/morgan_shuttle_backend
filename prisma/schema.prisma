@@ -39,9 +39,11 @@ model Trip {
   status          String    @default("scheduled") // scheduled, completed, cancelled, in_progress
   is_special      Boolean   @default(false)
   tenant_name     String?
-  lat             Float?    // Current latitude for live tracking
-  lng             Float?    // Current longitude for live tracking
-  createdAt       DateTime  @default(now())
+  lat               Float?    // Current latitude for live tracking
+  lng               Float?    // Current longitude for live tracking
+  actual_passengers Int?      // New Field: Logged at completion
+  notes             String?   @db.Text // New Field: Driver's notes
+  createdAt         DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   bookings        Booking[]
 

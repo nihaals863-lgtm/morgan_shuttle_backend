@@ -26,32 +26,16 @@ async function main() {
     ]
   });
 
-  // 2. Simple Rolling Trips (Just 4 for today)
-  const today = new Date().toISOString().split('T')[0];
-  await prisma.trip.createMany({
-    data: [
-      { time: '08:30', date: today, origin: 'Morgan Campus', destination: 'Station Mont-Tremblant', seats_total: 7, seats_remaining: 7 },
-      { time: '10:00', date: today, origin: 'Village Center', destination: 'IGA Extra', seats_total: 7, seats_remaining: 5 },
-      { time: '14:30', date: today, origin: 'Super C', destination: 'Morgan Campus', seats_total: 7, seats_remaining: 7 },
-      { time: '17:00', date: today, origin: 'Morgan Campus', destination: 'Maxi', seats_total: 7, seats_remaining: 7 }
-    ]
-  });
+  // 2. Clear Trips and Requests (Leave Empty)
+  console.log('✨ Database cleared. No active trips or requests.');
 
-  // 3. Requests
-  await prisma.tripRequest.createMany({
-    data: [
-      { tenant_name: 'Kiaan Resident', date: today, time: '12:00', origin: 'IGA', destination: 'Morgan Campus', passengers: 2, status: 'pending' },
-      { tenant_name: 'John Doe', date: today, time: '15:45', origin: 'Morgan Campus', destination: 'Station Mont-Tremblant', passengers: 1, status: 'pending' }
-    ]
-  });
-
-  // 4. Destinations
-  const destinations = ['Morgan Campus', 'Station Mont-Tremblant', 'IGA', 'Super C', 'Maxi', 'Village Center'];
+  // 3. Destinations
+  const destinations = ['Morgan Campus', 'Station Mont-Tremblant', 'Village Center'];
   for (const name of destinations) {
     await prisma.destination.create({ data: { name } });
   }
 
-  console.log('✅ Clean & Minimal Seed Successful! Database is now simple and ready.');
+  console.log('✅ Clean Database Ready - Login with admin@morgan.com / 123');
 }
 
 main()
