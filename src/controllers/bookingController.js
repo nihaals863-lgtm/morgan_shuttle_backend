@@ -16,10 +16,25 @@ const createBooking = asyncHandler(async (req, res) => {
     throw new Error('Trip not found');
   }
 
+  // Check if user already has a confirmed booking for this trip
+  const existingBooking = await prisma.booking.findFirst({
+    where: {
+      trip_id,
+      user_id,
+      status: 'confirmed'
+    }
+  });
+
+  if (existingBooking) {
+    res.status(400);
+    throw new Error('You already have a confirmed booking for this trip.');
+  }
+
   if (trip.seats_remaining < seats) {
     res.status(400);
     throw new Error('Not enough seats remaining');
   }
+
 
   // Create booking and decrease seats remaining in a transaction
   const [booking, updatedTrip] = await prisma.$transaction([

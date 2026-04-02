@@ -7,6 +7,11 @@ const getTrips = asyncHandler(async (req, res) => {
   const { date } = req.query; // YYYY-MM-DD
   const trips = await prisma.trip.findMany({
     where: date ? { date } : {},
+    include: {
+      bookings: {
+        include: { user: true }
+      }
+    },
     orderBy: { time: 'asc' }
   });
   res.json({ success: true, trips });
@@ -51,8 +56,20 @@ const createRequest = asyncHandler(async (req, res) => {
     }
   });
 
+  // Notify admins
+  const admins = await prisma.user.findMany({ where: { role: 'admin' } });
+  await prisma.notification.createMany({
+    data: admins.map(a => ({
+      userId: a.id,
+      title: 'New Trip Request',
+      body: `${tenant_name} requested a trip on ${date} at ${time}.`,
+      icon: 'calendar-plus'
+    }))
+  });
+
   res.status(201).json({ success: true, request });
 });
+
 
 // @desc    Get all trip requests (Admin Only)
 // @route   GET /api/trips/requests
@@ -75,11 +92,39 @@ const updateTrip = asyncHandler(async (req, res) => {
       status,
       actual_passengers: actual_passengers || undefined,
       notes: notes || undefined
-    }
+    },
+    include: { bookings: true } // Include bookings to find users
   });
+
+  // If completed, notify booked users
+  if (status === 'completed') {
+    const notifyUsers = trip.bookings.filter(b => b.status === 'confirmed').map(b => b.user_id);
+    if (notifyUsers.length > 0) {
+      await prisma.notification.createMany({
+        data: notifyUsers.map(uId => ({
+          userId: uId,
+          title: 'Trip Completed',
+          body: `Your trip from ${trip.origin} was completed.`,
+          icon: 'check-circle'
+        }))
+      });
+    }
+
+    // Also notify admins
+    const admins = await prisma.user.findMany({ where: { role: 'admin' } });
+    await prisma.notification.createMany({
+      data: admins.map(a => ({
+        userId: a.id,
+        title: 'Trip Logged',
+        body: `Trip ${trip.origin} → ${trip.destination} was completed by driver.`,
+        icon: 'clipboard-text-outline'
+      }))
+    });
+  }
 
   res.json({ success: true, trip });
 });
+
 
 // @desc    Delete trip (Admin Only)
 // @route   DELETE /api/trips/:id
@@ -170,10 +215,25 @@ const startTrip = asyncHandler(async (req, res) => {
 
   const trip = await prisma.trip.update({
     where: { id },
-    data: { status: 'in_progress', lat: null, lng: null }
+    data: { status: 'in_progress', lat: null, lng: null },
+    include: { bookings: true }
   });
+
+  // Notify booked users that trip has started
+  const notifyUsers = trip.bookings.filter(b => b.status === 'confirmed').map(b => b.user_id);
+  if (notifyUsers.length > 0) {
+    await prisma.notification.createMany({
+      data: notifyUsers.map(uId => ({
+        userId: uId,
+        title: 'Shuttle Started',
+        body: `The shuttle for your trip from ${trip.origin} has started. Track it live now!`,
+        icon: 'bus'
+      }))
+    });
+  }
 
   res.json({ success: true, trip });
 });
+
 
 module.exports = { getTrips, createTrip, createRequest, getRequests, updateTrip, deleteTrip, approveRequest, deleteRequest, rejectRequest, updateLocation, startTrip };

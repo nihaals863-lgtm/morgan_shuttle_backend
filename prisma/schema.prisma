@@ -11,22 +11,40 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(cuid())
+  id               String         @id @default(cuid())
   name             String
-  email            String    @unique
-  role             String    // admin, driver, tenant
+  email            String         @unique
+  role             String         // admin, driver, tenant
   password         String?
-  password_set     Boolean   @default(false)
-  invitation_sent  Boolean   @default(false)
-  invitation_token String?   @unique
+  password_set     Boolean        @default(false)
+  invitation_sent  Boolean        @default(false)
+  invitation_token String?        @unique
   token_expiry     DateTime?
-  source           String    @default("INTERNAL") // PMS, INTERNAL
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  source           String         @default("INTERNAL") // PMS, INTERNAL
+  phone            String?        // New Field
+  extra            String?        // New Field (Room/License)
+  special          String?        // New Field (Shuttle ID)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   bookings         Booking[]
+  notifications    Notification[] // Relation to notifications
 
   @@map("user")
 }
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  icon      String   @default("bell")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notification")
+}
+
 
 model Trip {
   id              String    @id @default(cuid())
