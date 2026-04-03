@@ -147,6 +147,16 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
   });
 
+  // Create an in-app notification for the user
+  await prisma.notification.create({
+    data: {
+      userId: user.id,
+      title: 'Password Reset Request',
+      body: `Someone requested a password reset. Your token is: ${token}`,
+      icon: 'key-variant'
+    }
+  });
+
   // In a real app, you would send this token via email here.
   // Returning it directly for the demo as requested by user ("direct hi se").
   res.json({ success: true, token, message: 'Reset token generated successfully' });
