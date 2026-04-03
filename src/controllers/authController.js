@@ -123,4 +123,33 @@ const sendInvitation = asyncHandler(async (req, res) => {
   res.json({ success: true, token, expiry });
 });
 
-module.exports = { internalCreate, setupPassword, login, sendInvitation };
+// @desc    Forgot Password - Generates a token for the user
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User with this email does not exist');
+  }
+
+  const token = Math.random().toString(36).substr(2, 9);
+  const expiry = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1h expiry for reset
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      invitation_token: token,
+      token_expiry: expiry.toISOString()
+    }
+  });
+
+  // In a real app, you would send this token via email here.
+  // Returning it directly for the demo as requested by user ("direct hi se").
+  res.json({ success: true, token, message: 'Reset token generated successfully' });
+});
+
+module.exports = { internalCreate, setupPassword, login, sendInvitation, forgotPassword };
