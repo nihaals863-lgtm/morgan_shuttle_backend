@@ -153,14 +153,16 @@ const approveRequest = asyncHandler(async (req, res) => {
   });
 
   // 3. Create a NEW trip based on this request
+  // Keep seats open according to requested passenger count so it does not appear FULL immediately.
+  const requestedSeats = Math.max(parseInt(request.passengers, 10) || 1, 1);
   const trip = await prisma.trip.create({
     data: {
       time: request.time,
       date: request.date,
       origin: request.origin,
       destination: request.destination,
-      seats_total: request.passengers,
-      seats_remaining: 0, // It's a special run for this person
+      seats_total: requestedSeats,
+      seats_remaining: requestedSeats,
       status: 'scheduled',
       is_special: true,
       tenant_name: request.tenant_name
