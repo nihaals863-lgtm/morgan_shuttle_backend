@@ -1,6 +1,15 @@
 const prisma = require('../utils/prisma');
 const asyncHandler = require('express-async-handler');
 
+const getAdminUsers = async () => {
+  // Role data can be inconsistent in legacy rows (case/spacing), normalize at query time.
+  return prisma.$queryRaw`
+    SELECT id, name, email, role
+    FROM user
+    WHERE LOWER(TRIM(role)) = 'admin'
+  `;
+};
+
 // @desc    Get all trips by date
 // @route   GET /api/trips
 const getTrips = asyncHandler(async (req, res) => {
@@ -57,7 +66,7 @@ const createRequest = asyncHandler(async (req, res) => {
   });
 
   // Notify admins
-  const admins = await prisma.user.findMany({ where: { role: 'admin' } });
+  const admins = await getAdminUsers();
   await prisma.notification.createMany({
     data: admins.map(a => ({
       userId: a.id,
@@ -111,7 +120,7 @@ const updateTrip = asyncHandler(async (req, res) => {
     }
 
     // Also notify admins
-    const admins = await prisma.user.findMany({ where: { role: 'admin' } });
+    const admins = await getAdminUsers();
     await prisma.notification.createMany({
       data: admins.map(a => ({
         userId: a.id,
@@ -130,8 +139,19 @@ const updateTrip = asyncHandler(async (req, res) => {
 // @route   DELETE /api/trips/:id
 const deleteTrip = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  await prisma.trip.delete({ where: { id } });
-  res.json({ success: true, message: 'Trip deleted.' });
+
+  const existingTrip = await prisma.trip.findUnique({ where: { id } });
+  if (!existingTrip) {
+    return res.status(404).json({ success: false, message: 'Trip not found.' });
+  }
+
+  // Remove dependent rows first to avoid FK constraint failures.
+  await prisma.$transaction([
+    prisma.booking.deleteMany({ where: { trip_id: id } }),
+    prisma.trip.delete({ where: { id } }),
+  ]);
+
+  res.json({ success: true, message: 'Trip and related bookings deleted.' });
 });
 
 // @desc    Approve trip request (Admin Only)
