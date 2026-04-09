@@ -2,12 +2,11 @@ const prisma = require('../utils/prisma');
 const asyncHandler = require('express-async-handler');
 
 const getAdminUsers = async () => {
-  // Role data can be inconsistent in legacy rows (case/spacing), normalize at query time.
-  return prisma.$queryRaw`
-    SELECT id, name, email, role
-    FROM user
-    WHERE LOWER(TRIM(role)) = 'admin'
-  `;
+  // Role data can be inconsistent in legacy rows (case/spacing), normalize in app logic.
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, role: true }
+  });
+  return users.filter((u) => (u.role || '').trim().toLowerCase() === 'admin');
 };
 
 // @desc    Get all trips by date
