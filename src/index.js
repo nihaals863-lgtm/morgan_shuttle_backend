@@ -27,8 +27,8 @@ app.use('/api/sync', require('./routes/syncRoutes'));
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Morgan Shuttle Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Morgan Shuttle Server running on 0.0.0.0:${PORT}`);
 });
 
 process.on('SIGINT', async () => {

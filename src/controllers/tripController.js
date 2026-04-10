@@ -9,6 +9,21 @@ const getAdminUsers = async () => {
   return users.filter((u) => (u.role || '').trim().toLowerCase() === 'admin');
 };
 
+const getUsersByRole = async (targetRole) => {
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, role: true }
+  });
+  return users.filter((u) => (u.role || '').trim().toLowerCase() === targetRole);
+};
+
+const getUsersByRoles = async (targetRoles) => {
+  const normalized = targetRoles.map((r) => r.trim().toLowerCase());
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, role: true }
+  });
+  return users.filter((u) => normalized.includes((u.role || '').trim().toLowerCase()));
+};
+
 // @desc    Get all trips by date
 // @route   GET /api/trips
 const getTrips = asyncHandler(async (req, res) => {
@@ -188,6 +203,33 @@ const approveRequest = asyncHandler(async (req, res) => {
     }
   });
 
+  // 4. Notify the requesting resident (if we can identify by name) and all drivers.
+  // Notify all tenant/resident users to avoid missing alerts due to name mismatches.
+  const tenantUsers = await getUsersByRoles(['tenant', 'resident']);
+
+  if (tenantUsers.length > 0) {
+    await prisma.notification.createMany({
+      data: tenantUsers.map((u) => ({
+        userId: u.id,
+        title: 'Request Approved',
+        body: `Your requested trip for ${request.date} at ${request.time} has been approved.`,
+        icon: 'check-circle'
+      }))
+    });
+  }
+
+  const drivers = await getUsersByRole('driver');
+  if (drivers.length > 0) {
+    await prisma.notification.createMany({
+      data: drivers.map((d) => ({
+        userId: d.id,
+        title: 'New Trip Assigned',
+        body: `A new trip is scheduled on ${request.date} at ${request.time}: ${request.origin} → ${request.destination}.`,
+        icon: 'bus-clock'
+      }))
+    });
+  }
+
   res.json({ success: true, trip });
 });
 
@@ -207,6 +249,21 @@ const rejectRequest = asyncHandler(async (req, res) => {
     where: { id },
     data: { status: 'rejected' }
   });
+
+  // Notify the requesting resident that their request was rejected.
+  const tenantUsers = await getUsersByRoles(['tenant', 'resident']);
+
+  if (tenantUsers.length > 0) {
+    await prisma.notification.createMany({
+      data: tenantUsers.map((u) => ({
+        userId: u.id,
+        title: 'Request Rejected',
+        body: `Your requested trip for ${request.date} at ${request.time} was not approved.`,
+        icon: 'close-circle'
+      }))
+    });
+  }
+
   res.json({ success: true, request });
 });
 
